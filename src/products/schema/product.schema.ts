@@ -67,6 +67,8 @@ export class Product {
 
   @Prop()
   rating?: number;
+  @Prop()
+  ratingCount?: number;
 
   /**
    * Nombre total d’avis reçus.

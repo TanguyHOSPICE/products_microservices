@@ -25,7 +25,8 @@ export class CreateProductDto {
   description?: string;
 
   @IsNumber()
-  @Min(0)
+  @Min(0) // ! default > 0
+  @IsPositive()
   price: number;
 
   @IsOptional()
@@ -60,6 +61,10 @@ export class CreateProductDto {
   @IsOptional()
   @IsNumber()
   rating?: number;
+
+  @IsOptional()
+  @IsNumber()
+  ratingCount?: number;
 
   @IsOptional()
   @IsNumber()
