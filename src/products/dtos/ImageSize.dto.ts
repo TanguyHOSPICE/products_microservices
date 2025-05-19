@@ -1,6 +1,6 @@
 import { IsNumber } from 'class-validator';
 
-export class SizeDimensionsDto {
+export class ImageSizeDto {
   @IsNumber()
   h: number;
 

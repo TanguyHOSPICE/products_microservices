@@ -1,13 +1,21 @@
-import { IsArray, IsUrl, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsOptional,
+  IsUrl,
+  MaxLength,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
-import { SizeDimensionsDto } from './size-dimensions.dto';
+import { ImageSizeDto } from './ImageSize.dto';
 
 export class ImageDto {
+  @IsOptional()
   @ValidateNested()
-  @Type(() => SizeDimensionsDto)
-  sizes: SizeDimensionsDto;
+  @Type(() => ImageSizeDto)
+  sizes?: ImageSizeDto;
 
   @IsArray()
-  @IsUrl(undefined, { each: true })
+  @IsUrl({}, { each: true })
+  @MaxLength(5, { each: false })
   urls: string[];
 }

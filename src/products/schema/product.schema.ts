@@ -1,3 +1,6 @@
+// ------------------------------
+// 🟢 1. Product Schema (Refactored)
+// ------------------------------
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { Document, Types } from 'mongoose';
 
@@ -8,27 +11,13 @@ export class Product {
   @Prop({ required: true })
   name: string;
 
-  @Prop()
-  description?: string;
+  @Prop() description?: string;
+  @Prop({ required: true }) price: number;
+  @Prop({ default: 0 }) stock: number;
 
-  @Prop({ required: true })
-  price: number;
-
-  @Prop({ default: 0 })
-  stock: number;
-
-  /**
-   * Référence à un ou plusieurs utilisateurs (ex: vendeurs ou créateurs du produit)
-   * Chaque ObjectId fait le lien avec un document de la collection "users"
-   */
   @Prop({ type: [{ type: Types.ObjectId, ref: 'User' }], default: [] })
   users: Types.ObjectId[];
 
-  /**
-   * Images list  :
-   * - sizes: taille de l’image
-   * - urls: tableau d’URLs de différentes résolutions
-   */
   @Prop({
     type: [
       {
@@ -42,6 +31,7 @@ export class Product {
             (val: string[]) => val.every((url) => /^https?:\/\//.test(url)),
             'URLs invalides',
           ],
+          maxlength: [5, 'Pas plus de 5 URLs'],
           default: [],
         },
       },
@@ -53,118 +43,32 @@ export class Product {
     urls: string[];
   }[];
 
-  @Prop({ type: [String], default: [] })
-  tags: string[];
+  @Prop({ type: [String], default: [] }) tags: string[];
+  @Prop({ type: [String], default: [] }) categories: string[];
 
-  @Prop({ type: [String], default: [] })
-  categories: string[];
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'DeliveryRule' }], default: [] })
+  deliveryRules: Types.ObjectId[];
 
-  @Prop({ default: true })
-  is_active: boolean;
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'ProductStatus' }], default: [] })
+  statuses: Types.ObjectId[];
 
-  @Prop()
-  image?: string; // Image principale, souvent images[0].urls[0]
+  @Prop() rating?: number;
+  @Prop() ratingCount?: number;
+  @Prop() reviews?: number;
+  @Prop() brand?: string;
+  @Prop() color?: string;
+  @Prop() material?: string;
+  @Prop() warranty?: string;
+  @Prop() shipping?: string;
+  @Prop() returnPolicy?: string;
 
-  @Prop()
-  rating?: number;
-  @Prop()
-  ratingCount?: number;
-
-  /**
-   * Nombre total d’avis reçus.
-   * Sert à afficher "⭐⭐⭐ 4.5 (127 avis)"
-   */
-  @Prop()
-  reviews?: number;
-
-  @Prop()
-  isFavorite?: boolean;
-
-  @Prop()
-  isInCart?: boolean;
-
-  @Prop()
-  quantity?: number;
-
-  @Prop()
-  isInWishlist?: boolean;
-
-  @Prop()
-  isInCompare?: boolean;
-
-  @Prop()
-  isInStock?: boolean;
-
-  @Prop()
-  isOnSale?: boolean;
-
-  @Prop()
-  discount?: number;
-
-  @Prop()
-  brand?: string;
-
-  @Prop()
-  color?: string;
-
-  @Prop()
-  material?: string;
-
-  @Prop()
-  warranty?: string;
-
-  @Prop()
-  shipping?: string;
-
-  @Prop()
-  returnPolicy?: string;
-
-  @Prop()
-  isAvailable?: boolean;
-
-  @Prop()
-  isFeatured?: boolean;
-
-  @Prop()
-  isNew?: boolean;
-
-  @Prop()
-  isBestSeller?: boolean;
-
-  @Prop()
-  isLimitedEdition?: boolean;
-
-  @Prop()
-  isExclusive?: boolean;
-
-  @Prop()
-  isPreOrder?: boolean;
-
-  @Prop()
-  isBackOrder?: boolean;
-
-  @Prop()
-  isComingSoon?: boolean;
-
-  @Prop()
-  isOutOfStock?: boolean;
-
-  @Prop()
-  isDiscontinued?: boolean;
-
-  @Prop()
-  isArchived?: boolean;
-
-  /**
-   * Dimensions du produit avec unité(s) (ex: ["cm", "in"]) et dimensions possibles.
-   */
   @Prop({
     type: {
       units: { type: [String], default: ['cm'] },
-      length: { type: Number },
-      width: { type: Number },
-      height: { type: Number },
-      depth: { type: Number },
+      length: Number,
+      width: Number,
+      height: Number,
+      depth: Number,
     },
     default: {},
   })
