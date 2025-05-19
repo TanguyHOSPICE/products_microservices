@@ -46,7 +46,7 @@ export class Product {
   @Prop({ type: [String], default: [] }) tags: string[];
   @Prop({ type: [String], default: [] }) categories: string[];
 
-  @Prop({ type: [{ type: Types.ObjectId, ref: 'DeliveryRule' }], default: [] })
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'DeliveryRules' }], default: [] })
   deliveryRules: Types.ObjectId[];
 
   @Prop({ type: [{ type: Types.ObjectId, ref: 'ProductStatus' }], default: [] })
