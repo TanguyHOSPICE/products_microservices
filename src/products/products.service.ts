@@ -32,7 +32,10 @@ export class ProductsService {
     updateProductDto: UpdateProductDto,
   ): Promise<Product | null> {
     return this.productModel
-      .findByIdAndUpdate(id, updateProductDto, { new: true })
+      .findByIdAndUpdate(id, updateProductDto, {
+        new: true,
+        runValidators: true,
+      })
       .exec();
   }
 
