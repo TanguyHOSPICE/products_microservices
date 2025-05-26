@@ -61,8 +61,7 @@ export class CreateProductDto {
   deliveryRules?: string[];
 
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
+  @IsString()
   status?: string;
 
   @IsOptional()
@@ -102,8 +101,10 @@ export class CreateProductDto {
   returnPolicy?: string;
 
   @IsOptional()
-  @IsArray()
   @ValidateNested()
   @Type(() => SizeDto)
-  sizes?: SizeDto[];
+  sizes?: SizeDto;
+
+  createdAt: Date;
+  updatedAt: Date;
 }

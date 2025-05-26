@@ -49,7 +49,7 @@ export class Product {
   @Prop({ type: [{ type: Types.ObjectId, ref: 'DeliveryRules' }], default: [] })
   deliveryRules: Types.ObjectId[];
 
-  @Prop({ type: [{ type: Types.ObjectId, ref: 'ProductStatus' }] })
+  @Prop({ type: Types.ObjectId, ref: 'ProductStatus', required: true })
   status: Types.ObjectId;
 
   @Prop() rating?: number;
@@ -72,13 +72,15 @@ export class Product {
     },
     default: {},
   })
-  size?: {
+  sizes?: {
     units: string[];
     length?: number;
     width?: number;
     height?: number;
     depth?: number;
   };
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export const ProductSchema = SchemaFactory.createForClass(Product);

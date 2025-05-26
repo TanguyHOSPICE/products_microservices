@@ -1,4 +1,5 @@
 import {
+  ArrayMaxSize,
   IsArray,
   IsOptional,
   IsUrl,
@@ -16,6 +17,8 @@ export class ImageDto {
 
   @IsArray()
   @IsUrl({}, { each: true })
-  @MaxLength(5, { each: false })
+  @ArrayMaxSize(5, {
+    message: 'A maximum of 5 URLs is allowed',
+  })
   urls: string[];
 }
