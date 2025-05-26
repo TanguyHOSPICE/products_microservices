@@ -63,7 +63,7 @@ export class CreateProductDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  statuses?: string[];
+  status?: string;
 
   @IsOptional()
   @IsNumber()
