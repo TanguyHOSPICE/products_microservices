@@ -49,8 +49,8 @@ export class Product {
   @Prop({ type: [{ type: Types.ObjectId, ref: 'DeliveryRules' }], default: [] })
   deliveryRules: Types.ObjectId[];
 
-  @Prop({ type: [{ type: Types.ObjectId, ref: 'ProductStatus' }], default: [] })
-  statuses: Types.ObjectId[];
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'ProductStatus' }] })
+  status: Types.ObjectId;
 
   @Prop() rating?: number;
   @Prop() ratingCount?: number;
