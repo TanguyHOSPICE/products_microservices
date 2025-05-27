@@ -7,7 +7,11 @@ import { CreateProductDto } from './dtos/create-product.dto';
 import { UpdateProductDto } from './dtos/update-product.dto';
 import { firstValueFrom } from 'rxjs';
 import { RpcCustomException } from 'src/exceptions/rpc-custom.exception';
-import { oneMonthAgo } from 'src/utils/functions/FProducts';
+import {
+  oneMonthAgo,
+  tagToStatusFieldMap,
+} from 'src/utils/functions/FProducts';
+import { IProductStatusPayload } from 'src/utils/interfaces/interfaces';
 
 @Injectable()
 export class ProductsService {
@@ -72,16 +76,82 @@ export class ProductsService {
     return product;
   }
 
+  // async update(
+  //   id: string,
+  //   updateProductDto: UpdateProductDto,
+  // ): Promise<Product | null> {
+  //   try {
+  //     const productExist = await this.findOne(id); // Lève déjà une erreur si non trouvé
+
+  //     if (!productExist.status) {
+  //       throw new RpcCustomException(
+  //         'No status provided for the product',
+  //         HttpStatus.BAD_REQUEST,
+  //         '400',
+  //       );
+  //     }
+
+  //     const productStatus = await firstValueFrom(
+  //       this.nats.send('PRODUCTS_STATUS_GET_BY_ID', {
+  //         id: productExist.status,
+  //       }),
+  //     );
+
+  //     if (!productStatus) {
+  //       throw new RpcCustomException(
+  //         'Product status not found',
+  //         HttpStatus.NOT_FOUND,
+  //         '404',
+  //       );
+  //     }
+
+  //     // Vérifie si le produit a plus d’un mois
+  //     const isOlderThanOneMonth = productExist.createdAt < oneMonthAgo;
+
+  //     if (isOlderThanOneMonth && productStatus.isNewProduct === true) {
+  //       // Mise à jour du statut : isNewProduct -> false
+  //       await firstValueFrom(
+  //         this.nats.send('PRODUCTS_STATUS_UPDATE', {
+  //           id: productExist.status,
+  //           update: { isNewProduct: false },
+  //         }),
+  //       );
+  //     }
+
+  //     const updatedProduct = await this.productModel.findByIdAndUpdate(
+  //       id,
+  //       updateProductDto,
+  //       { new: true, runValidators: true },
+  //     );
+
+  //     if (!updatedProduct) {
+  //       throw new RpcCustomException(
+  //         'Product not found during update',
+  //         HttpStatus.NOT_FOUND,
+  //         '404',
+  //       );
+  //     }
+
+  //     return updatedProduct;
+  //   } catch (error) {
+  //     throw new RpcCustomException(
+  //       error.message || 'Error updating product',
+  //       HttpStatus.INTERNAL_SERVER_ERROR,
+  //       'PRODUCT_UPDATE_ERROR',
+  //     );
+  //   }
+  // }
+
   async update(
     id: string,
     updateProductDto: UpdateProductDto,
   ): Promise<Product | null> {
     try {
-      const productExist = await this.findOne(id); // Lève déjà une erreur si non trouvé
+      const productExist = await this.findOne(id);
 
       if (!productExist.status) {
         throw new RpcCustomException(
-          'No status provided for the product',
+          'No status provided',
           HttpStatus.BAD_REQUEST,
           '400',
         );
@@ -101,15 +171,47 @@ export class ProductsService {
         );
       }
 
-      // Vérifie si le produit a plus d’un mois
-      const isOlderThanOneMonth = productExist.createdAt < oneMonthAgo;
+      const statusUpdate: Partial<IProductStatusPayload> = {};
 
+      // --- Logic related to stock ---
+      const previousStock = productExist.stock;
+      const incomingStock = updateProductDto.stock;
+      const isStockUpdated =
+        incomingStock !== undefined && incomingStock !== previousStock;
+
+      if (isStockUpdated) {
+        if (incomingStock === 0 && productStatus.isOutOfStock !== true) {
+          statusUpdate.isOutOfStock = true;
+          statusUpdate.isAvailable = false;
+        } else if (incomingStock > 0 && productStatus.isOutOfStock === true) {
+          statusUpdate.isOutOfStock = false;
+          statusUpdate.isAvailable = true;
+        }
+      }
+
+      // --- Logic related to new product status ---
+      const isOlderThanOneMonth = productExist.createdAt < oneMonthAgo;
       if (isOlderThanOneMonth && productStatus.isNewProduct === true) {
-        // Mise à jour du statut : isNewProduct -> false
+        statusUpdate.isNewProduct = false;
+      }
+      // --- Logic related to dynamic tags ---
+      for (const [tag, field] of Object.entries(tagToStatusFieldMap)) {
+        const hasTag = updateProductDto.tags?.includes(tag);
+        const currentStatusValue = productStatus[field];
+
+        if (hasTag && currentStatusValue !== true) {
+          statusUpdate[field] = true;
+        } else if (!hasTag && currentStatusValue === true) {
+          statusUpdate[field] = false;
+        }
+      }
+
+      // --- Update status if there are changes ---
+      if (Object.keys(statusUpdate).length > 0) {
         await firstValueFrom(
           this.nats.send('PRODUCTS_STATUS_UPDATE', {
             id: productExist.status,
-            update: { isNewProduct: false },
+            update: statusUpdate,
           }),
         );
       }
@@ -137,7 +239,6 @@ export class ProductsService {
       );
     }
   }
-
   async remove(
     id: string,
   ): Promise<{ deletedProduct: Product | null; deletedStatus?: any }> {
