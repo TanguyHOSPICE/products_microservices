@@ -3,6 +3,7 @@
 // ------------------------------
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { Document, Types } from 'mongoose';
+import { SalesPeriodLabel } from 'src/utils/enums/EnumSalesPeriod';
 
 export type ProductDocument = mongoose.HydratedDocument<Product>;
 
@@ -49,8 +50,11 @@ export class Product {
   @Prop({ type: [{ type: Types.ObjectId, ref: 'DeliveryRules' }], default: [] })
   deliveryRules: Types.ObjectId[];
 
-  @Prop({ type: Types.ObjectId, ref: 'ProductStatus', required: true })
-  status: Types.ObjectId;
+  @Prop({
+    type: [{ type: Types.ObjectId, ref: 'ProductStatus', required: true }],
+    default: [],
+  })
+  status: Types.ObjectId[];
 
   @Prop() rating?: number;
   @Prop() ratingCount?: number;
@@ -79,6 +83,26 @@ export class Product {
     height?: number;
     depth?: number;
   };
+  @Prop({
+    type: [
+      {
+        label: {
+          type: String,
+          enum: ['promotion', 'coming_soon', 'event'],
+          required: true,
+        },
+        start: { type: Date, required: true },
+        end: { type: Date, required: true },
+      },
+    ],
+    default: [],
+  })
+  salesPeriods: {
+    label: SalesPeriodLabel;
+    start: Date;
+    end: Date;
+  }[];
+
   createdAt: Date;
   updatedAt: Date;
 }
