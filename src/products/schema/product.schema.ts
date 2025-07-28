@@ -88,7 +88,7 @@ export class Product {
       {
         label: {
           type: String,
-          enum: ['promotion', 'coming_soon', 'event'],
+          enum: SalesPeriodLabel,
           required: true,
         },
         start: { type: Date, required: true },
