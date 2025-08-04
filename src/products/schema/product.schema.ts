@@ -99,6 +99,7 @@ export class Product {
   })
   salesPeriods: {
     label: SalesPeriodLabel;
+    name: string;
     start: Date;
     end: Date;
   }[];
