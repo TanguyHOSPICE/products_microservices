@@ -85,10 +85,26 @@ export class Product {
     depth?: number;
   };
   @Prop({
-    type: [SalesPeriodsDto],
+    type: [
+      {
+        start: { type: Date, required: true },
+        end: { type: Date, required: true },
+        type: {
+          type: String,
+          enum: Object.values(EnumSalesPeriodType),
+          required: true,
+        },
+        name: { type: String, required: true },
+      },
+    ],
     default: [],
   })
-  salesPeriods?: SalesPeriodsDto[];
+  salesPeriods?: {
+    start: Date;
+    end: Date;
+    type: EnumSalesPeriodType;
+    name: string;
+  }[];
 
   createdAt: Date;
   updatedAt: Date;
