@@ -17,6 +17,8 @@ import {
 import { Type } from 'class-transformer';
 import { SizeDto } from './size.dto';
 import { ImageDto } from './image.dto';
+import { EnumSalesPeriodType } from 'src/utils/enums/EnumSalesPeriod';
+import { SalesPeriodsDto } from './salesPeriods.dto';
 
 export class CreateProductDto {
   @IsString()
@@ -61,8 +63,9 @@ export class CreateProductDto {
   deliveryRules?: string[];
 
   @IsOptional()
-  @IsString()
-  status?: string;
+  @IsArray()
+  @IsString({ each: true })
+  status?: string[];
 
   @IsOptional()
   @IsNumber()
@@ -105,6 +108,9 @@ export class CreateProductDto {
   @Type(() => SizeDto)
   sizes?: SizeDto;
 
-  createdAt: Date;
-  updatedAt: Date;
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SalesPeriodsDto)
+  salesPeriods?: SalesPeriodsDto[];
 }

@@ -4,6 +4,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { Document, Types } from 'mongoose';
 import { EnumSalesPeriodType } from 'src/utils/enums/EnumSalesPeriod';
+import { SalesPeriodsDto } from '../dtos/salesPeriods.dto';
 
 export type ProductDocument = mongoose.HydratedDocument<Product>;
 
@@ -84,26 +85,10 @@ export class Product {
     depth?: number;
   };
   @Prop({
-    type: [
-      {
-        type: {
-          type: String,
-          enum: EnumSalesPeriodType,
-          required: true,
-        },
-        name: { type: String, required: true },
-        start: { type: Date, required: true },
-        end: { type: Date, required: true },
-      },
-    ],
+    type: [SalesPeriodsDto],
     default: [],
   })
-  salesPeriods: {
-    type: EnumSalesPeriodType;
-    name: string;
-    start: Date;
-    end: Date;
-  }[];
+  salesPeriods?: SalesPeriodsDto[];
 
   createdAt: Date;
   updatedAt: Date;

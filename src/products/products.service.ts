@@ -45,10 +45,10 @@ export class ProductsService {
         ...createProductDto,
         status: createdStatus._id,
       });
-      // console.log(
-      //   '🧙🏽‍♂️ ~ ProductsService ~ create ~ createdStatus._id:',
-      //   createdStatus._id,
-      // ); // ! dev tool
+      console.log(
+        '🧙🏽‍♂️ ~ ProductsService ~ create ~ createdStatus._id:',
+        createdStatus._id,
+      ); // ! dev tool
 
       return createdProduct.save();
     } catch (error) {
