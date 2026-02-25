@@ -76,71 +76,24 @@ export class ProductsService {
     return product;
   }
 
-  // async update(
-  //   id: string,
-  //   updateProductDto: UpdateProductDto,
-  // ): Promise<Product | null> {
-  //   try {
-  //     const productExist = await this.findOne(id); // Lève déjà une erreur si non trouvé
+  async reserveStock(items: any[]) {
+    for (const item of items) {
+      const updated = await this.productModel.findOneAndUpdate(
+        {
+          _id: item.product_id,
+          stock: { $gte: item.quantity },
+        },
+        { $inc: { stock: -item.quantity } },
+        { new: true },
+      );
 
-  //     if (!productExist.status) {
-  //       throw new RpcCustomException(
-  //         'No status provided for the product',
-  //         HttpStatus.BAD_REQUEST,
-  //         '400',
-  //       );
-  //     }
+      if (!updated) {
+        return { success: false };
+      }
+    }
 
-  //     const productStatus = await firstValueFrom(
-  //       this.nats.send('PRODUCTS_STATUS_GET_BY_ID', {
-  //         id: productExist.status,
-  //       }),
-  //     );
-
-  //     if (!productStatus) {
-  //       throw new RpcCustomException(
-  //         'Product status not found',
-  //         HttpStatus.NOT_FOUND,
-  //         '404',
-  //       );
-  //     }
-
-  //     // Vérifie si le produit a plus d’un mois
-  //     const isOlderThanOneMonth = productExist.createdAt < oneMonthAgo;
-
-  //     if (isOlderThanOneMonth && productStatus.isNewProduct === true) {
-  //       // Mise à jour du statut : isNewProduct -> false
-  //       await firstValueFrom(
-  //         this.nats.send('PRODUCTS_STATUS_UPDATE', {
-  //           id: productExist.status,
-  //           update: { isNewProduct: false },
-  //         }),
-  //       );
-  //     }
-
-  //     const updatedProduct = await this.productModel.findByIdAndUpdate(
-  //       id,
-  //       updateProductDto,
-  //       { new: true, runValidators: true },
-  //     );
-
-  //     if (!updatedProduct) {
-  //       throw new RpcCustomException(
-  //         'Product not found during update',
-  //         HttpStatus.NOT_FOUND,
-  //         '404',
-  //       );
-  //     }
-
-  //     return updatedProduct;
-  //   } catch (error) {
-  //     throw new RpcCustomException(
-  //       error.message || 'Error updating product',
-  //       HttpStatus.INTERNAL_SERVER_ERROR,
-  //       'PRODUCT_UPDATE_ERROR',
-  //     );
-  //   }
-  // }
+    return { success: true };
+  }
 
   async update(
     id: string,

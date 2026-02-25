@@ -22,6 +22,11 @@ export class ProductsMicroserviceController {
     return this.productsService.findOne(id);
   }
 
+  @MessagePattern('STOCK_RESERVE_PRODUCTS')
+  async reserveStock(@Payload() data: { items: any[] }) {
+    return this.productsService.reserveStock(data.items);
+  }
+
   @MessagePattern('PRODUCT_UPDATE')
   update(
     @Payload() payload: { id: string; updateProductDto: UpdateProductDto },
