@@ -1,18 +1,20 @@
 import {
-  IsArray,
-  IsNumber,
-  IsOptional,
   IsString,
-  ValidateNested,
   IsNotEmpty,
+  IsOptional,
+  IsNumber,
+  IsArray,
+  ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
-import { SizeDto } from './size.dto';
 import { ImageDto } from './image.dto';
-import { EnumSalesPeriodType } from 'src/utils/enums/EnumSalesPeriod';
+import { SizeDto } from './size.dto';
 import { SalesPeriodsDto } from './salesPeriods.dto';
+import { Type } from 'class-transformer';
 
-export class CreateProductDto {
+export class ProductResponseDto {
+  @IsString()
+  @IsNotEmpty()
+  _id: string;
   @IsString()
   @IsNotEmpty()
   name: string;
@@ -55,21 +57,9 @@ export class CreateProductDto {
   deliveryRules?: string[];
 
   @IsOptional()
-  manualStatus?: {
-    isBestSeller?: boolean;
-    isFeatured?: boolean;
-    isExclusive?: boolean;
-    isLimitedEdition?: boolean;
-    isArchived?: boolean;
-    // 🔥 HYBRID allowed
-    isPreOrder?: boolean;
-    isBackOrder?: boolean;
-    isComingSoon?: boolean;
-    isPromo?: boolean;
-    isDiscounted?: boolean;
-    isInAd?: boolean;
-    isAvailable?: boolean;
-  };
+  @IsArray()
+  @IsString({ each: true })
+  status?: string[];
 
   @IsOptional()
   @IsNumber()
@@ -117,4 +107,10 @@ export class CreateProductDto {
   @ValidateNested({ each: true })
   @Type(() => SalesPeriodsDto)
   salesPeriods?: SalesPeriodsDto[];
+
+  @IsOptional()
+  createdAt?: Date;
+
+  @IsOptional()
+  updatedAt?: Date;
 }

@@ -1,4 +1,5 @@
 import { Injectable, Inject, HttpStatus } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ClientProxy } from '@nestjs/microservices';
@@ -7,11 +8,14 @@ import { CreateProductDto } from './dtos/create-product.dto';
 import { UpdateProductDto } from './dtos/update-product.dto';
 import { firstValueFrom } from 'rxjs';
 import { RpcCustomException } from 'src/exceptions/rpc-custom.exception';
+import { ProductWithPrice } from 'src/utils/types/product.type';
+import { getFinalPrice } from 'src/utils/functions/FPricing';
 import {
-  oneMonthAgo,
-  tagToStatusFieldMap,
-} from 'src/utils/functions/FProducts';
-import { IProductStatusPayload } from 'src/utils/interfaces/interfaces';
+  validateManualStatus,
+  validateSalesPeriods,
+} from 'src/utils/functions/FValidateSalesPeriod';
+import { computeAutomaticStatus } from 'src/utils/functions/FComputeStatus';
+import { mergeStatus } from 'src/utils/functions/mergeStatus';
 
 @Injectable()
 export class ProductsService {
@@ -21,51 +25,93 @@ export class ProductsService {
     @Inject('NATS_GATEWAY') private readonly nats: ClientProxy,
   ) {}
 
+  // ------------------------------
+  // 🟢 CREATE
+  // ------------------------------
   async create(createProductDto: CreateProductDto): Promise<Product> {
-    // const created = new this.productModel(createProductDto);
-    // return created.save();
     try {
-      // 1. Créer un ProductStatus via NATS avec les valeurs par défaut
-      const defaultStatusPayload = {}; // pas besoin de champs, ton schéma les gère par défaut
-
+      // 🟢 1. S.P validation
+      validateSalesPeriods(createProductDto.salesPeriods);
+      // 🟢 2. Status creation by default
       const createdStatus = await firstValueFrom(
-        this.nats.send('PRODUCTS_STATUS_DEFAULT_CREATE', defaultStatusPayload),
+        this.nats.send('PRODUCTS_STATUS_DEFAULT_CREATE', {}),
       );
-
+      console.log(
+        '🧙🏽‍♂️ ~ ProductsService ~ create ~ createdStatus:',
+        createdStatus,
+      ); // ! dev tool
+      // 🔥 Check if status creation was successful
       if (!createdStatus || !createdStatus._id) {
         throw new RpcCustomException(
-          'Échec de la création du statut produit',
+          'Status creation failed',
           HttpStatus.INTERNAL_SERVER_ERROR,
           '500',
         );
       }
 
-      // 2. Créer le produit en liant le status reçu
+      // 3.🟢 Product creation with linked status
       const createdProduct = new this.productModel({
         ...createProductDto,
         status: createdStatus._id,
       });
+
+      console.log(
+        '🧙🏽‍♂️ ~ ProductsService ~ create ~ createdProduct:',
+        createdProduct,
+      ); // ! dev tool
       console.log(
         '🧙🏽‍♂️ ~ ProductsService ~ create ~ createdStatus._id:',
         createdStatus._id,
       ); // ! dev tool
 
+      // 🔥 4. MANUAL VALIDATION
+      const validatedManual = validateManualStatus(
+        createdProduct,
+        createProductDto.manualStatus,
+      );
+      // 🔥 5. AUTO
+      const autoStatus = computeAutomaticStatus(createdProduct);
+      // 🔥 6. MERGE FINAL
+      const finalStatus = mergeStatus(validatedManual, autoStatus);
+      // 🔥 7. UPDATE UNIQUE
+      await firstValueFrom(
+        this.nats.send('PRODUCTS_STATUS_UPDATE', {
+          id: createdStatus._id,
+          update: finalStatus,
+        }),
+      );
+      // console.log('🔥 ~ ProductsService ~ create ~ manual:', validatedManual); // ! dev tool
+      // console.log('🔥 ~ ProductsService ~ create ~ auto:', autoStatus); // ! dev tool
+      // console.log('🔥 ~ ProductsService ~ create ~ final:', finalStatus); // ! dev tool
+
       return createdProduct.save();
     } catch (error) {
       throw new RpcCustomException(
-        error?.message || 'Erreur lors de la création du produit',
+        error?.message || 'Error creating product',
         error?.status || HttpStatus.INTERNAL_SERVER_ERROR,
         error?.code || '500',
       );
     }
   }
+  // ------------------------------
+  // 🔵 FIND ALL
+  // ------------------------------
+  async findAll(): Promise<ProductWithPrice[]> {
+    const products = await this.productModel.find().lean();
 
-  async findAll(): Promise<Product[]> {
-    return this.productModel.find().exec();
+    return products.map((product) => ({
+      ...product,
+      finalPrice: getFinalPrice(product),
+    }));
   }
+  // ------------------------------
+  // 🔵 FIND ONE
+  // ------------------------------
 
-  async findOne(id: string): Promise<Product | null> {
-    const product = await this.productModel.findById(id).exec();
+  async findOne(id: string): Promise<ProductWithPrice> {
+    // .lean() JS object pur & perfect to manipulate & add finalPrice without Mongoose overhead
+    const product = await this.productModel.findById(id).lean();
+
     if (!product) {
       throw new RpcCustomException(
         'Product not found',
@@ -73,9 +119,15 @@ export class ProductsService {
         '404',
       );
     }
-    return product;
-  }
 
+    return {
+      ...product,
+      finalPrice: getFinalPrice(product),
+    };
+  }
+  // ------------------------------
+  // 🔵 RESERVE STOCK
+  // ------------------------------
   async reserveStock(items: any[]) {
     for (const item of items) {
       const updated = await this.productModel.findOneAndUpdate(
@@ -94,15 +146,19 @@ export class ProductsService {
 
     return { success: true };
   }
+  // ------------------------------
+  // 🔵 UPDATE
+  // ------------------------------
 
   async update(
     id: string,
     updateProductDto: UpdateProductDto,
   ): Promise<Product | null> {
     try {
-      const productExist = await this.findOne(id);
+      //  CHECK PRODUCT EXISTENCE + GET CURRENT STATUS
+      const product = await this.findOne(id);
 
-      if (!productExist.status) {
+      if (!product.status) {
         throw new RpcCustomException(
           'No status provided',
           HttpStatus.BAD_REQUEST,
@@ -110,69 +166,19 @@ export class ProductsService {
         );
       }
 
-      const productStatus = await firstValueFrom(
-        this.nats.send('PRODUCTS_STATUS_GET_BY_ID', {
-          id: productExist.status,
-        }),
-      );
-
-      if (!productStatus) {
-        throw new RpcCustomException(
-          'Product status not found',
-          HttpStatus.NOT_FOUND,
-          '404',
-        );
+      // 🟢 1. S.P VALIDATION
+      if (updateProductDto.salesPeriods) {
+        validateSalesPeriods(updateProductDto.salesPeriods);
       }
 
-      const statusUpdate: Partial<IProductStatusPayload> = {};
-
-      // --- Logic related to stock ---
-      const previousStock = productExist.stock;
-      const incomingStock = updateProductDto.stock;
-      const isStockUpdated =
-        incomingStock !== undefined && incomingStock !== previousStock;
-
-      if (isStockUpdated) {
-        if (incomingStock === 0 && productStatus.isOutOfStock !== true) {
-          statusUpdate.isOutOfStock = true;
-          statusUpdate.isAvailable = false;
-        } else if (incomingStock > 0 && productStatus.isOutOfStock === true) {
-          statusUpdate.isOutOfStock = false;
-          statusUpdate.isAvailable = true;
-        }
-      }
-
-      // --- Logic related to new product status ---
-      const isOlderThanOneMonth = productExist.createdAt < oneMonthAgo;
-      if (isOlderThanOneMonth && productStatus.isNewProduct === true) {
-        statusUpdate.isNewProduct = false;
-      }
-      // --- Logic related to dynamic tags ---
-      for (const [tag, field] of Object.entries(tagToStatusFieldMap)) {
-        const hasTag = updateProductDto.tags?.includes(tag);
-        const currentStatusValue = productStatus[field];
-
-        if (hasTag && currentStatusValue !== true) {
-          statusUpdate[field] = true;
-        } else if (!hasTag && currentStatusValue === true) {
-          statusUpdate[field] = false;
-        }
-      }
-
-      // --- Update status if there are changes ---
-      if (Object.keys(statusUpdate).length > 0) {
-        await firstValueFrom(
-          this.nats.send('PRODUCTS_STATUS_UPDATE', {
-            id: productExist.status,
-            update: statusUpdate,
-          }),
-        );
-      }
-
+      // 🟢 2. UPDATE PRODUCT
       const updatedProduct = await this.productModel.findByIdAndUpdate(
         id,
         updateProductDto,
-        { new: true, runValidators: true },
+        {
+          new: true,
+          runValidators: true,
+        },
       );
 
       if (!updatedProduct) {
@@ -182,6 +188,22 @@ export class ProductsService {
           '404',
         );
       }
+      // 🔥 3. MANUAL VALIDATION
+      const validatedManual = validateManualStatus(
+        updatedProduct,
+        updateProductDto.manualStatus,
+      );
+      // 🔥 4. AUTO
+      const autoStatus = computeAutomaticStatus(updatedProduct);
+      // 🔥 5. MERGE
+      const finalStatus = mergeStatus(validatedManual, autoStatus);
+      // 🔥 6. UPDATE UNIQUE
+      await firstValueFrom(
+        this.nats.send('PRODUCTS_STATUS_UPDATE', {
+          id: product.status,
+          update: finalStatus,
+        }),
+      );
 
       return updatedProduct;
     } catch (error) {
@@ -192,6 +214,23 @@ export class ProductsService {
       );
     }
   }
+
+  // @Cron('*/5 * * * *') // toutes les 5 minutes
+  // async updateStatuses() {
+  //   const products = await this.productModel.find();
+
+  //   for (const product of products) {
+  //     const autoStatus = computeAutomaticStatus(product);
+
+  //     await this.nats.send('PRODUCTS_STATUS_UPDATE', {
+  //       id: product.status,
+  //       update: autoStatus,
+  //     });
+  //   }
+  // }
+  // ------------------------------
+  // 🔴 DELETE
+  // ------------------------------
   async remove(
     id: string,
   ): Promise<{ deletedProduct: Product | null; deletedStatus?: any }> {

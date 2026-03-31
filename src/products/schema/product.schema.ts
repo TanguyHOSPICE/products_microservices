@@ -53,9 +53,8 @@ export class Product {
 
   @Prop({
     type: [{ type: Types.ObjectId, ref: 'ProductStatus', required: true }],
-    default: [],
   })
-  status: Types.ObjectId[];
+  status: Types.ObjectId;
 
   @Prop() rating?: number;
   @Prop() ratingCount?: number;
@@ -84,6 +83,7 @@ export class Product {
     height?: number;
     depth?: number;
   };
+
   @Prop({
     type: [
       {
@@ -95,17 +95,28 @@ export class Product {
           required: true,
         },
         name: { type: String, required: true },
+        discount: {
+          type: {
+            type: String,
+            enum: ['PERCENT', 'FIXED'],
+            required: true,
+          },
+          value: { type: Number, required: true },
+        },
       },
     ],
     default: [],
   })
-  salesPeriods?: {
+  salesPeriods: {
     start: Date;
     end: Date;
     type: EnumSalesPeriodType;
     name: string;
+    discount: {
+      type: 'PERCENT' | 'FIXED';
+      value: number;
+    };
   }[];
-
   createdAt: Date;
   updatedAt: Date;
 }
