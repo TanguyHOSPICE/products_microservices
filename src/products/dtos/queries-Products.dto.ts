@@ -11,7 +11,8 @@ import { SizeDto } from './size.dto';
 import { ImageDto } from './image.dto';
 import { SalesPeriodsDto } from './salesPeriods.dto';
 
-export class CreateProductDto {
+export class QueryProductsDto {
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
   name: string;
@@ -20,11 +21,14 @@ export class CreateProductDto {
   @IsString()
   description?: string;
 
+  @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   price: number;
 
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   stock?: number;
 
   @IsOptional()
@@ -54,32 +58,22 @@ export class CreateProductDto {
   deliveryRules?: string[];
 
   @IsOptional()
-  manualStatus?: {
-    isBestSeller?: boolean;
-    isFeatured?: boolean;
-    isExclusive?: boolean;
-    isLimitedEdition?: boolean;
-    isArchived?: boolean;
-    // 🔥 HYBRID allowed
-    isPreOrder?: boolean;
-    isBackOrder?: boolean;
-    isComingSoon?: boolean;
-    isPromo?: boolean;
-    isDiscounted?: boolean;
-    isInAd?: boolean;
-    isAvailable?: boolean;
-  };
+  @IsString()
+  status?: string;
 
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   rating?: number;
 
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   ratingCount?: number;
 
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   reviews?: number;
 
   @IsOptional()

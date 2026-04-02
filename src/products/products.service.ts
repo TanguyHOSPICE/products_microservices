@@ -16,6 +16,8 @@ import {
 } from 'src/utils/functions/FValidateSalesPeriod';
 import { computeAutomaticStatus } from 'src/utils/functions/FComputeStatus';
 import { mergeStatus } from 'src/utils/functions/mergeStatus';
+import { tagToStatusFieldMap } from 'src/utils/mappers/product.mapper';
+import { QueryProductsDto } from './dtos/queries-Products.dto';
 
 @Injectable()
 export class ProductsService {
@@ -96,8 +98,88 @@ export class ProductsService {
   // ------------------------------
   // 🔵 FIND ALL
   // ------------------------------
-  async findAll(): Promise<ProductWithPrice[]> {
-    const products = await this.productModel.find().lean();
+  // async findAll(): Promise<ProductWithPrice[]> {
+  //   const products = await this.productModel.find().lean();
+
+  //   return products.map((product) => ({
+  //     ...product,
+  //     finalPrice: getFinalPrice(product),
+  //   }));
+  // }
+  async findAll(query: QueryProductsDto): Promise<ProductWithPrice[]> {
+    const {
+      name,
+      description,
+      price,
+      stock,
+      users,
+      images,
+      tags,
+      categories,
+      deliveryRules,
+      status,
+      rating,
+      ratingCount,
+      reviews,
+      brand,
+      color,
+      material,
+      warranty,
+      shipping,
+      returnPolicy,
+      sizes,
+      salesPeriods,
+    } = query;
+
+    const filter: any = {};
+    if (name !== undefined) filter.name = { $regex: name, $options: 'i' };
+    if (description !== undefined)
+      filter.description = { $regex: description, $options: 'i' };
+    if (price !== undefined) filter.price = price;
+    if (stock !== undefined) filter.stock = stock;
+    if (users !== undefined) filter.users = { $in: users };
+    if (images !== undefined) filter.images = { $elemMatch: images };
+    if (tags !== undefined) filter.tags = { $in: tags };
+    if (categories !== undefined) filter.categories = { $in: categories };
+    if (deliveryRules !== undefined)
+      filter.deliveryRules = { $in: deliveryRules };
+    if (rating !== undefined) filter.rating = rating;
+    if (ratingCount !== undefined) filter.ratingCount = ratingCount;
+    if (reviews !== undefined) filter.reviews = reviews;
+    if (brand !== undefined) filter.brand = brand;
+    if (color !== undefined) filter.color = color;
+    if (material !== undefined) filter.material = material;
+    if (warranty !== undefined) filter.warranty = warranty;
+    if (shipping !== undefined) filter.shipping = shipping;
+    if (returnPolicy !== undefined) filter.returnPolicy = returnPolicy;
+    if (sizes !== undefined) filter.sizes = sizes;
+    if (salesPeriods !== undefined) filter.salesPeriods = salesPeriods;
+
+    if (status) {
+      // get the status productsStatusId
+
+      const field = tagToStatusFieldMap[status.toLowerCase()];
+
+      if (!field) {
+        return []; // status unknown
+      }
+      // 🔥 Call ProductStatus ms
+      const statuses = await firstValueFrom(
+        this.nats.send('PRODUCTS_STATUS_GET_ALL', {
+          [field]: true,
+        }),
+      );
+
+      if (!statuses || !Array.isArray(statuses) || statuses.length === 0) {
+        return [];
+      }
+
+      const statusIds = statuses.map((s) => s._id);
+
+      filter.status = { $in: statusIds };
+    }
+
+    const products = await this.productModel.find(filter).lean();
 
     return products.map((product) => ({
       ...product,

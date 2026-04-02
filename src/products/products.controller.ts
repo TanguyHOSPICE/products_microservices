@@ -3,6 +3,7 @@ import { ProductsService } from './products.service';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { CreateProductDto } from './dtos/create-product.dto';
 import { UpdateProductDto } from './dtos/update-product.dto';
+import { QueryProductsDto } from './dtos/queries-Products.dto';
 
 @Controller()
 export class ProductsMicroserviceController {
@@ -13,8 +14,8 @@ export class ProductsMicroserviceController {
   }
 
   @MessagePattern('PRODUCT_FIND_ALL')
-  findAll() {
-    return this.productsService.findAll();
+  findAll(@Payload() query: QueryProductsDto) {
+    return this.productsService.findAll(query);
   }
 
   @MessagePattern('PRODUCT_FIND_ONE')

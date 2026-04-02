@@ -3,7 +3,10 @@
 // ------------------------------
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { Document, Types } from 'mongoose';
-import { EnumSalesPeriodType } from 'src/utils/enums/EnumSalesPeriod';
+import {
+  DiscountType,
+  EnumSalesPeriodType,
+} from 'src/utils/enums/EnumSalesPeriod';
 import { SalesPeriodsDto } from '../dtos/salesPeriods.dto';
 
 export type ProductDocument = mongoose.HydratedDocument<Product>;
@@ -98,7 +101,7 @@ export class Product {
         discount: {
           type: {
             type: String,
-            enum: ['PERCENT', 'FIXED'],
+            enum: Object.values(DiscountType),
             required: true,
           },
           value: { type: Number, required: true },
@@ -113,7 +116,7 @@ export class Product {
     type: EnumSalesPeriodType;
     name: string;
     discount: {
-      type: 'PERCENT' | 'FIXED';
+      type: DiscountType;
       value: number;
     };
   }[];
