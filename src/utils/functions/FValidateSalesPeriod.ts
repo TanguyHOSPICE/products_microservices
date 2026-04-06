@@ -71,12 +71,11 @@ export function validateManualStatus(
 
   // PREORDER
   if (manual.isPreOrder !== undefined) {
-    const hasFuture = product.salesPeriods?.some(
-      (p) => new Date(p.start) > new Date(),
-    );
-
-    if ((product.stock ?? 0) > 0 && !hasFuture && manual.isPreOrder) {
-      throw new Error('Pre Order impossible : product already available');
+    if (manual.isPreOrder) {
+      // Optionnal : warning logique
+      if ((product.stock ?? 0) > 0) {
+        console.warn('⚠️ PreOrder activated on a product with stock available');
+      }
     }
 
     validated.isPreOrder = manual.isPreOrder;
@@ -85,7 +84,7 @@ export function validateManualStatus(
   // BACKORDER
   if (manual.isBackOrder !== undefined) {
     if ((product.stock ?? 0) > 0 && manual.isBackOrder) {
-      throw new Error('Back Order useless if stock available');
+      console.warn('⚠️ Back Order useless if stock available');
     }
 
     validated.isBackOrder = manual.isBackOrder;

@@ -38,10 +38,10 @@ export class ProductsService {
       const createdStatus = await firstValueFrom(
         this.nats.send('PRODUCTS_STATUS_DEFAULT_CREATE', {}),
       );
-      console.log(
-        '🧙🏽‍♂️ ~ ProductsService ~ create ~ createdStatus:',
-        createdStatus,
-      ); // ! dev tool
+      // console.log(
+      //   '🧙🏽‍♂️ ~ ProductsService ~ create ~ createdStatus:',
+      //   createdStatus,
+      // ); // ! dev tool
       // 🔥 Check if status creation was successful
       if (!createdStatus || !createdStatus._id) {
         throw new RpcCustomException(
@@ -57,14 +57,14 @@ export class ProductsService {
         status: createdStatus._id,
       });
 
-      console.log(
-        '🧙🏽‍♂️ ~ ProductsService ~ create ~ createdProduct:',
-        createdProduct,
-      ); // ! dev tool
-      console.log(
-        '🧙🏽‍♂️ ~ ProductsService ~ create ~ createdStatus._id:',
-        createdStatus._id,
-      ); // ! dev tool
+      // console.log(
+      //   '🧙🏽‍♂️ ~ ProductsService ~ create ~ createdProduct:',
+      //   createdProduct,
+      // ); // ! dev tool
+      // console.log(
+      //   '🧙🏽‍♂️ ~ ProductsService ~ create ~ createdStatus._id:',
+      //   createdStatus._id,
+      // ); // ! dev tool
 
       // 🔥 4. MANUAL VALIDATION
       const validatedManual = validateManualStatus(
@@ -75,37 +75,52 @@ export class ProductsService {
       const autoStatus = computeAutomaticStatus(createdProduct);
       // 🔥 6. MERGE FINAL
       const finalStatus = mergeStatus(validatedManual, autoStatus);
-      // 🔥 7. UPDATE UNIQUE
-      await firstValueFrom(
-        this.nats.send('PRODUCTS_STATUS_UPDATE', {
-          id: createdStatus._id,
-          update: finalStatus,
-        }),
-      );
+      // 🔥 7. Updating & save
+      // 7.1. save product FIRST
+      const savedProduct = await createdProduct.save();
+
+      // 7.2. update status AFTER (non bloquant)
+      try {
+        await firstValueFrom(
+          this.nats.send('PRODUCTS_STATUS_UPDATE', {
+            id: createdStatus._id.toString(),
+            update: finalStatus,
+          }),
+        );
+      } catch (err) {
+        console.warn('⚠️ Status update failed:', err);
+      }
+
+      return savedProduct;
       // console.log('🔥 ~ ProductsService ~ create ~ manual:', validatedManual); // ! dev tool
       // console.log('🔥 ~ ProductsService ~ create ~ auto:', autoStatus); // ! dev tool
       // console.log('🔥 ~ ProductsService ~ create ~ final:', finalStatus); // ! dev tool
-
-      return createdProduct.save();
     } catch (error) {
+      if (error instanceof RpcCustomException) {
+        throw error;
+      }
+
+      if (error instanceof Error) {
+        console.error('🔥 VALIDATION ERROR:', error.message);
+
+        throw new RpcCustomException(
+          error.message,
+          HttpStatus.BAD_REQUEST,
+          'VALIDATION_ERROR',
+        );
+      }
+
       throw new RpcCustomException(
-        error?.message || 'Error creating product',
-        error?.status || HttpStatus.INTERNAL_SERVER_ERROR,
-        error?.code || '500',
+        'Unknown error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        '500',
       );
     }
   }
   // ------------------------------
   // 🔵 FIND ALL
   // ------------------------------
-  // async findAll(): Promise<ProductWithPrice[]> {
-  //   const products = await this.productModel.find().lean();
 
-  //   return products.map((product) => ({
-  //     ...product,
-  //     finalPrice: getFinalPrice(product),
-  //   }));
-  // }
   async findAll(query: QueryProductsDto): Promise<ProductWithPrice[]> {
     const {
       name,
@@ -290,7 +305,7 @@ export class ProductsService {
       return updatedProduct;
     } catch (error) {
       throw new RpcCustomException(
-        error.message || 'Error updating product',
+        'Error updating product',
         HttpStatus.INTERNAL_SERVER_ERROR,
         'PRODUCT_UPDATE_ERROR',
       );
@@ -337,8 +352,11 @@ export class ProductsService {
           this.nats.send('PRODUCTS_STATUS_DELETE', product.status.toString()),
         );
       } catch (err) {
-        console.warn(
-          `Erreur lors de la suppression du statut lié : ${err.message}`,
+        console.warn(`Erreur lors de la suppression du statut lié : ${err}`);
+        throw new RpcCustomException(
+          `Deleted product failed ${err}`,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+          '500',
         );
       }
     }
