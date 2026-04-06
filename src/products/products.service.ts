@@ -79,7 +79,7 @@ export class ProductsService {
       // 7.1. save product FIRST
       const savedProduct = await createdProduct.save();
 
-      // 7.2. update status AFTER (non bloquant)
+      // 7.2. update status AFTER
       try {
         await firstValueFrom(
           this.nats.send('PRODUCTS_STATUS_UPDATE', {
