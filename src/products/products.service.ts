@@ -188,7 +188,7 @@ export class ProductsService {
       if (!statuses || !Array.isArray(statuses) || statuses.length === 0) {
         return [];
       }
-
+      // Similar to DATALOADER: group multiple calls into a single one (ex:getStatus(product1.status)+getStatus(product2.status))-> getStatuses([product1.status, product2.status]) to optimize performance and reduce NATS calls
       const statusIds = statuses.map((s) => s._id);
 
       filter.status = { $in: statusIds };
