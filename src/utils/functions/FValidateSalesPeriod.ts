@@ -1,5 +1,5 @@
-import { SalesPeriodsDto } from 'src/products/dtos/salesPeriods.dto';
-import { Product } from 'src/products/schema/product.schema';
+import { SalesPeriodsDto } from '../../products/dtos/salesPeriods.dto';
+import { Product } from '../../products/schema/product.schema';
 import { ManualStatusInput, Status } from '../types/product.type';
 
 export function validateSalesPeriods(salesPeriods?: SalesPeriodsDto[]): void {

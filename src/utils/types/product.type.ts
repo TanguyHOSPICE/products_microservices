@@ -1,5 +1,5 @@
-import { CreateProductDto } from 'src/products/dtos/create-product.dto';
-import { Product } from 'src/products/schema/product.schema';
+import { CreateProductDto } from '../../products/dtos/create-product.dto';
+import { Product } from '../../products/schema/product.schema';
 import { EnumSalesPeriodType } from '../enums/EnumSalesPeriod';
 
 export type ProductWithPrice = Product & {

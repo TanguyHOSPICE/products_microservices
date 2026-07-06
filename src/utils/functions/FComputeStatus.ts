@@ -1,4 +1,4 @@
-import { Product } from 'src/products/schema/product.schema';
+import { Product } from '../../products/schema/product.schema';
 import { ActiveFuturePeriod, Status } from '../types/product.type';
 
 export function computeAutomaticStatus(product: Partial<Product>): Status {

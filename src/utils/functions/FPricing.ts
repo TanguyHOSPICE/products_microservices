@@ -1,4 +1,4 @@
-import { Product } from 'src/products/schema/product.schema';
+import { Product } from '../../products/schema/product.schema';
 
 export function getActiveDiscount(product: Product) {
   const now = new Date();

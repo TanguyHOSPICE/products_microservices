@@ -6,7 +6,7 @@ import mongoose, { Document, Types } from 'mongoose';
 import {
   DiscountType,
   EnumSalesPeriodType,
-} from 'src/utils/enums/EnumSalesPeriod';
+} from '../../utils/enums/EnumSalesPeriod';
 import { SalesPeriodsDto } from '../dtos/salesPeriods.dto';
 
 export type ProductDocument = mongoose.HydratedDocument<Product>;

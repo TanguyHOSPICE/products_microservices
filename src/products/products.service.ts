@@ -7,16 +7,16 @@ import { Product } from './schema/product.schema';
 import { CreateProductDto } from './dtos/create-product.dto';
 import { UpdateProductDto } from './dtos/update-product.dto';
 import { firstValueFrom } from 'rxjs';
-import { RpcCustomException } from 'src/exceptions/rpc-custom.exception';
-import { ProductWithPrice } from 'src/utils/types/product.type';
-import { getFinalPrice } from 'src/utils/functions/FPricing';
+import { RpcCustomException } from '../exceptions/rpc-custom.exception';
+import { ProductWithPrice } from '../utils/types/product.type';
+import { getFinalPrice } from '../utils/functions/FPricing';
 import {
   validateManualStatus,
   validateSalesPeriods,
-} from 'src/utils/functions/FValidateSalesPeriod';
-import { computeAutomaticStatus } from 'src/utils/functions/FComputeStatus';
-import { mergeStatus } from 'src/utils/functions/mergeStatus';
-import { tagToStatusFieldMap } from 'src/utils/mappers/product.mapper';
+} from '../utils/functions/FValidateSalesPeriod';
+import { computeAutomaticStatus } from '../utils/functions/FComputeStatus';
+import { mergeStatus } from '../utils/functions/mergeStatus';
+import { tagToStatusFieldMap } from '../utils/mappers/product.mapper';
 import { QueryProductsDto } from './dtos/queries-Products.dto';
 
 @Injectable()
